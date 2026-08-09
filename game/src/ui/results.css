@@ -9,9 +9,13 @@
 .rs-bigwin { color: var(--dc-amber); font-size: 15px; font-weight: 900; letter-spacing: 3px; margin-bottom: 4px; }
 .rs-medallion { display: flex; justify-content: center; color: var(--dc-amber); margin-bottom: 6px;
   filter: drop-shadow(0 0 16px rgba(255,176,32,.5)); }
-.rs-title { margin: 0 0 6px; font-size: 21px; font-weight: 900; letter-spacing: 1px; }
-.rs-title-win { color: var(--dc-green); }
-.rs-title-loss { color: var(--dc-red); }
+
+/* ---------- Feature 3: 3D results title ---------- */
+.rs-title-wrap { position: relative; margin: 0 0 6px; }
+.rs-title { margin: 0; font-size: 25px; font-weight: 900; letter-spacing: 1px; line-height: 1;
+  animation: dc-bounce-in-static .55s cubic-bezier(.34,1.56,.64,1) both; }
+.rs-title-win { filter: drop-shadow(0 0 14px rgba(74,222,96,.5)); }
+.rs-title-loss { filter: drop-shadow(0 0 14px rgba(255,59,59,.5)); }
 .rs-ribbon { display: inline-block; background: rgba(255,176,32,.15); border: 1px solid var(--dc-amber);
   color: var(--dc-amber); font-size: 10px; font-weight: 800; letter-spacing: 1px; border-radius: 6px; padding: 3px 8px; margin-bottom: 10px; }
 
@@ -19,11 +23,18 @@
 .rs-row { display: flex; justify-content: space-between; padding: 6px 2px; font-size: 13px; font-weight: 700; color: var(--dc-ink-dim); }
 .rs-row .rs-value { color: #fff; font-weight: 900; }
 .rs-row-wheel .rs-value { color: var(--dc-purple); }
+.rs-row-anim { opacity: 0; animation: dc-row-in .4s ease-out both; }
 .rs-divider { height: 1px; background: rgba(255,255,255,.08); }
 
 .rs-coinblock { position: relative; margin-top: 10px; }
-.rs-collected-tag { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: var(--dc-ink-dim); margin-bottom: 4px; }
-.rs-earned { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 30px; font-weight: 900; color: #ffe066; }
+.rs-collected-tag { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 4px; opacity: 0; }
+.rs-earned { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 32px; font-weight: 900;
+  opacity: 0; animation: dc-money-pop .5s cubic-bezier(.34,1.56,.64,1) both; }
+.rs-earned .dc-3d-text { font-size: 32px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-title, .rs-row-anim, .rs-collected-tag, .rs-earned { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
 
 .rs-buttons { position: relative; z-index: 2; width: min(88%, 340px); display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .rs-btn { border-radius: 12px; padding: 14px 0; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; }

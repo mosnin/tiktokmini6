@@ -3,11 +3,12 @@ import { useGame, run, REVIVE_AD_COSTS, MAX_REVIVES } from '../store.js'
 import { fmt, fmtMoney } from '../consts.js'
 import { sfx } from '../audio.js'
 import { LEVELS } from '../game/levels.js'
+import { CAMOS, camoById } from '../game/camos.js'
 import { platform } from '../tiktok.js'
 import ElevatorScreen from './ElevatorScreen.jsx'
 import HangarScreen from './HangarScreen.jsx'
 import ResultsScreen from './ResultsScreen.jsx'
-import { CoinIcon, PlayAdIcon, ClockIcon, ShrinkIcon, ArmorIcon, SkullIcon } from './icons.jsx'
+import { CoinIcon, PlayAdIcon, ClockIcon, ShrinkIcon, ArmorIcon, SkullIcon, LockIcon } from './icons.jsx'
 import { FlightJoystick, SpeedGauge } from './FlightControls.jsx'
 import './flightcontrols.css'
 import './hud.css'
@@ -53,6 +54,25 @@ function PowerupChip({ hud }) {
   )
 }
 
+// Bottom-left chip for a touched-but-not-yet-activated powerup. Tapping opens
+// the existing rewarded-ad flow (store.activateStoredPowerup); the effect
+// itself only starts once that ad finishes (see Gameplay's pendingActivation).
+function StoredPowerupChip({ hud }) {
+  const activateStoredPowerup = useGame(s => s.activateStoredPowerup)
+  const adModal = useGame(s => s.adModal)
+  if (!hud.storedPowerup) return null
+  const isSlow = hud.storedPowerup.kind === 'slowmo'
+  return (
+    <button
+      className={`dc-stored-chip dc-stored-${hud.storedPowerup.kind}`}
+      onClick={() => { if (!adModal) activateStoredPowerup() }}
+    >
+      <span className="dc-stored-icon">{isSlow ? <ClockIcon size={20} /> : <ShrinkIcon size={20} />}</span>
+      <span className="dc-stored-label">ACTIVATE<b>▸AD</b></span>
+    </button>
+  )
+}
+
 function LivesRow({ lives }) {
   return (
     <div className="dc-lives">
@@ -76,6 +96,7 @@ function FlightHUD() {
       </div>
       <LivesRow lives={hud.lives} />
       <PowerupChip hud={hud} />
+      <StoredPowerupChip hud={hud} />
       <FlightJoystick />
       <SpeedGauge speed={hud.speed} max={level.maxSpeed} />
     </>
@@ -159,6 +180,39 @@ function UnlockCelebration() {
   )
 }
 
+// "NEW CAMO UNLOCKED!" — 22% drop rolled on COLLECT (store.rollCamoDrop).
+// Uses the same layered/gradient "3D text" treatment as the results screen
+// (Feature 3) plus a swatch strip highlighting the freshly-unlocked finish.
+function CamoUnlockPopup() {
+  const camoUnlock = useGame(s => s.camoUnlock)
+  const camos = useGame(s => s.camos)
+  const dismissCamoUnlock = useGame(s => s.dismissCamoUnlock)
+  if (!camoUnlock) return null
+  const cur = camos[camoUnlock.missileIdx] ?? { unlocked: ['classic'] }
+  const camo = camoById(camoUnlock.camoId)
+  return (
+    <div className="dc-modal-wrap dc-camo-pop-wrap" onClick={dismissCamoUnlock}>
+      <div className="dc-camo-pop">
+        <div className="dc-camo-pop-shadow" />
+        <div className="dc-camo-pop-title dc-3d-text">NEW CAMO<br />UNLOCKED!</div>
+        <div className="dc-camo-pop-name">{camo.name.toUpperCase()}</div>
+        <div className="dc-camo-pop-swatches">
+          {CAMOS.map(c => {
+            const unlocked = cur.unlocked.includes(c.id)
+            const isNew = c.id === camoUnlock.camoId
+            return (
+              <div key={c.id} className={`dc-camo-pop-swatch${isNew ? ' dc-camo-pop-swatch-new' : ''}${!unlocked ? ' dc-camo-pop-swatch-locked' : ''}`} style={{ background: c.swatch }}>
+                {!unlocked && <LockIcon size={12} />}
+              </div>
+            )
+          })}
+        </div>
+        <div className="dc-camo-pop-tap">EQUIPPED — TAP TO CONTINUE</div>
+      </div>
+    </div>
+  )
+}
+
 export default function HUD() {
   const screen = useGame(s => s.screen)
   if (screen === 'loading') return null
@@ -173,6 +227,7 @@ export default function HUD() {
       {screen === 'revive' && <ReviveModal />}
       {screen === 'results' && <ResultsScreen />}
       <UnlockCelebration />
+      <CamoUnlockPopup />
       <AdModal />
     </div>
   )

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { useRef, useEffect, useMemo, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useGame, run } from '../store.js'
+import { useGame, run, MAX_POWERUP_ACTIVATIONS, POWERUP_GRACE } from '../store.js'
 import { LEVELS } from '../game/levels.js'
 import { MISSILES } from '../game/missiles.js'
 import { generateLevel, collideObstacle, safeTargetFor, MISSILE_RADIUS } from '../game/obstacles.js'
@@ -44,6 +44,7 @@ export default function Gameplay() {
 
   const screen = useGame(s => s.screen)
   const missileIdx = useGame(s => s.missileIdx)
+  const equippedCamo = useGame(s => s.camos[s.missileIdx]?.equipped ?? 'classic')
   const selectedDepth = useGame(s => s.selectedDepth)
   const parts = useGame(s => s.parts)
   // bumped every beginFlight() — replaying the SAME depth must still get a
@@ -57,7 +58,7 @@ export default function Gameplay() {
 
   const [mTick, setMTick] = useState(0)
   useEffect(() => onModels(() => setMTick(t => t + 1)), [])
-  const missileModel = useMemo(() => cloneModel(MODELS.missiles[missileIdx]) || fallbackMissile(), [missileIdx, mTick])
+  const missileModel = useMemo(() => cloneModel(MODELS.missiles[missileIdx], equippedCamo) || fallbackMissile(), [missileIdx, mTick, equippedCamo])
 
   const obstacles = useMemo(() => generateLevel(level), [level.depth, flightSeq])
   const pickups = useMemo(() => generatePickups(level), [level.depth, flightSeq])
@@ -104,7 +105,7 @@ export default function Gameplay() {
 
     // debug hook for the difficulty auto-steerer / QA scripts (not gated —
     // harmless read-only surface, mirrors the window.__store pattern)
-    window.__dc = { obstacles, pickups, level, run, safeTargetFor, getMissile: () => ({ x: sim.mx, y: sim.my }) }
+    window.__dc = { obstacles, pickups, level, run, sim, safeTargetFor, getMissile: () => ({ x: sim.mx, y: sim.my }) }
   }, [obstacles, pickups, level])
 
   // ---------- descending transition: kick off the run once the elevator animation lands ----------
@@ -119,6 +120,10 @@ export default function Gameplay() {
     const g = useGame.getState()
 
     if (g.screen === 'hangar' || g.screen === 'elevator' || g.screen === 'loading') return
+    // ad-activated powerups: freeze the whole corridor while the rewarded-ad
+    // modal is up over the flying screen (stored-powerup activation) — no
+    // physics, no scroll, no spawns, camera holds still.
+    if (g.screen === 'flying' && g.adModal) return
 
     const missileWrap = missileWrapRef.current
     const missileTilt = missileTiltRef.current
@@ -130,6 +135,19 @@ export default function Gameplay() {
       const worldDt = realDt * (slowmoActive ? SLOWMO_FACTOR : 1)
       sim.accumT += worldDt
       const t = sim.accumT
+
+      // ad-activated powerup: the rewarded ad just closed (store set this
+      // flag) — turn the stored pickup into the real, timed effect now that
+      // we have a sim-time clock to stamp endsAt/graceUntil with.
+      if (run.pendingActivation) {
+        const kind = run.pendingActivation
+        run.pendingActivation = null
+        run.powerup = { kind, endsAt: t + POWERUP_DURATION }
+        run.powerupActivations += 1
+        run.graceUntil = t + POWERUP_GRACE
+        fx.spawnPowerup(new THREE.Vector3(sim.mx, sim.my, 0), kind === 'slowmo' ? '#3fa8ff' : '#a03fff')
+        if (kind === 'slowmo') { sfx.slowmoEnter(); sfx.setSlowmo(true) } else sfx.powerup(true)
+      }
 
       // speed ramp
       const rampP = Math.min(1, t / level.rampTime)
@@ -205,14 +223,22 @@ export default function Gameplay() {
         if (Math.abs(z) < 3) {
           const dx = p.x - sim.mx, dy = p.y - sim.my
           if (dx * dx + dy * dy + z * z < 1.6) {
-            p.taken = true
-            p.mesh.visible = false
-            if (p.kind === 'coin') { run.coinsThisRun += COIN_VALUE; sfx.coin(); fx.spawnCoinPop(new THREE.Vector3(p.x, p.y, 0)) }
-            else {
-              run.powerup = { kind: p.kind, endsAt: t + POWERUP_DURATION }
-              fx.spawnPowerup(new THREE.Vector3(p.x, p.y, 0), p.kind === 'slowmo' ? '#3fa8ff' : '#a03fff')
-              if (p.kind === 'slowmo') { sfx.slowmoEnter(); sfx.setSlowmo(true) }
-              else sfx.powerup(true)
+            if (p.kind === 'coin') {
+              p.taken = true; p.mesh.visible = false
+              run.coinsThisRun += COIN_VALUE; sfx.coin(); fx.spawnCoinPop(new THREE.Vector3(p.x, p.y, 0))
+            } else {
+              // ad-activated powerup: touching only STORES it (one at a time,
+              // capped activations per run) — activation happens later via
+              // the HUD chip -> rewarded ad -> pendingActivation above. If the
+              // slot is full or the run is out of activations, leave the
+              // pickup live so the player can grab it once the slot frees up.
+              const canStore = !run.storedPowerup && run.powerupActivations < MAX_POWERUP_ACTIVATIONS
+              if (canStore) {
+                p.taken = true; p.mesh.visible = false
+                run.storedPowerup = { kind: p.kind }
+                fx.spawnPowerup(new THREE.Vector3(p.x, p.y, 0), p.kind === 'slowmo' ? '#3fa8ff' : '#a03fff')
+                sfx.powerup(true)
+              }
             }
           }
         }
@@ -247,6 +273,7 @@ export default function Gameplay() {
           traveled: Math.floor(run.traveled), speed: Math.round(run.speed),
           progress: THREE.MathUtils.clamp(run.traveled / level.length, 0, 1),
           lives: run.livesLeft, powerup: run.powerup ? { kind: run.powerup.kind, pct: THREE.MathUtils.clamp((run.powerup.endsAt - t) / POWERUP_DURATION, 0, 1) } : null,
+          storedPowerup: run.storedPowerup ? { kind: run.storedPowerup.kind } : null,
           coins: run.coinsThisRun,
         })
       }
@@ -273,6 +300,9 @@ export default function Gameplay() {
   })
 
   function onHit(g) {
+    // post-ad-activation invincibility grace: absorb the hit silently so
+    // resuming after the ad modal closes isn't an instant wall.
+    if (sim.accumT < run.graceUntil) return
     if (run.livesLeft > 1) {
       run.livesLeft -= 1
       useGame.getState().registerGraze()

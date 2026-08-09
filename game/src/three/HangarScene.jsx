@@ -17,9 +17,12 @@ export default function HangarScene() {
   const { camera } = useThree()
   const rootRef = useRef()
   const viewMissileIdx = useGame(s => s.viewMissileIdx)
+  const equippedCamo = useGame(s => s.camos[viewMissileIdx]?.equipped ?? 'classic')
   const [mTick, setMTick] = useState(0)
   useEffect(() => onModels(() => setMTick(t => t + 1)), [])
-  const model = useMemo(() => cloneModel(MODELS.missiles[viewMissileIdx]) || fallbackMissile(), [viewMissileIdx, mTick])
+  // re-tints live when the player switches swatches — cloneModel() clones
+  // materials before painting them so this never leaks onto the stored original.
+  const model = useMemo(() => cloneModel(MODELS.missiles[viewMissileIdx], equippedCamo) || fallbackMissile(), [viewMissileIdx, mTick, equippedCamo])
   const def = MISSILES[viewMissileIdx]
 
   useFrame((state, dt) => {

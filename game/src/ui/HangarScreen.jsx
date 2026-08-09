@@ -3,6 +3,7 @@ import { LEVELS } from '../game/levels.js'
 import { fmt } from '../consts.js'
 import { PART_KEYS, PART_INFO, PART_MAX, partCost, isAdLevel, salvageMult, totalLives } from '../game/progression.js'
 import { MISSILES, isMissileUnlocked } from '../game/missiles.js'
+import { CAMOS, DEFAULT_CAMO } from '../game/camos.js'
 import { ThrusterIcon, ArmorIcon, SalvageIcon, PlayAdIcon, LockIcon, CoinIcon } from './icons.jsx'
 import './hangar.css'
 
@@ -41,6 +42,31 @@ function PartCard({ partKey, missileIdx, parts, coins, locked, buyPart }) {
           <><span className="hg-buy-top">UPGRADE</span><b><CoinIcon size={13} /> {fmt(cost)}</b></>
         )}
       </button>
+    </div>
+  )
+}
+
+function CamoRow({ missileIdx, locked }) {
+  const camoState = useGame(s => s.camos[missileIdx]) ?? { unlocked: [DEFAULT_CAMO], equipped: DEFAULT_CAMO }
+  const equipCamo = useGame(s => s.equipCamo)
+  return (
+    <div className="hg-camo-row">
+      {CAMOS.map(c => {
+        const unlocked = camoState.unlocked.includes(c.id)
+        const active = camoState.equipped === c.id
+        return (
+          <button
+            key={c.id}
+            className={`hg-swatch${active ? ' hg-swatch-active' : ''}${!unlocked ? ' hg-swatch-locked' : ''}`}
+            style={{ background: c.swatch }}
+            disabled={locked || !unlocked}
+            onClick={() => equipCamo(missileIdx, c.id)}
+            title={unlocked ? c.name : `Locked — ${c.name}`}
+          >
+            {!unlocked && <LockIcon size={11} />}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -84,6 +110,8 @@ export default function HangarScreen() {
 
       {viewMissileIdx > 0 && <button className="hg-arrow hg-arrow-l" onClick={() => viewMissile(viewMissileIdx - 1)}>‹</button>}
       {viewMissileIdx < MISSILES.length - 1 && <button className="hg-arrow hg-arrow-r" onClick={() => viewMissile(viewMissileIdx + 1)}>›</button>}
+
+      <CamoRow missileIdx={viewMissileIdx} locked={locked} />
 
       {locked && (
         <div className="hg-lock-overlay">

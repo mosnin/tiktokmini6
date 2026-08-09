@@ -147,6 +147,12 @@ export default function ResultsScreen() {
 
   if (!results) return null
 
+  const statRows = [
+    { key: 'distance', label: 'Distance', value: `${fmt(distance)}m` },
+    { key: 'grazes', label: 'Grazes', value: grazes },
+  ]
+  if (wheelMult) statRows.push({ key: 'wheel', label: 'Wheel Bonus', value: `x${wheelMult}`, accent: true })
+
   return (
     <div className="rs-root">
       <div className="rs-dim" />
@@ -161,22 +167,30 @@ export default function ResultsScreen() {
       <div className="rs-content">
         {bigWin && <div className="rs-bigwin">BIG WIN!</div>}
         <div className="rs-medallion">{won ? <TrophyIcon size={64} /> : <SkullIcon size={64} />}</div>
-        <h1 className={`rs-title${won ? ' rs-title-win' : ' rs-title-loss'}`}>{won ? `B${depth} CLEARED` : 'MISSION FAILED'}</h1>
+        <div className="rs-title-wrap">
+          <h1 className={`rs-title dc-3d-text${won ? ' rs-title-win' : ' rs-title-loss'}`}>
+            {won ? 'MISSION COMPLETE' : 'MISSION FAILED'}
+          </h1>
+          <div className="dc-3d-text-ground" />
+        </div>
         {won && isBest && <div className="rs-ribbon">NEW BEST TIME</div>}
 
         <div className="rs-stats">
-          <div className="rs-row"><span className="rs-label">Distance</span><b className="rs-value">{fmt(distance)}m</b></div>
-          <div className="rs-divider" />
-          <div className="rs-row"><span className="rs-label">Grazes</span><b className="rs-value">{grazes}</b></div>
-          {wheelMult && <>
-            <div className="rs-divider" />
-            <div className="rs-row rs-row-wheel"><span className="rs-label">Wheel Bonus</span><b className="rs-value">x{wheelMult}</b></div>
-          </>}
+          {statRows.map((row, i) => (
+            <div key={row.key}>
+              {i > 0 && <div className="rs-divider" />}
+              <div className={`rs-row rs-row-anim${row.accent ? ' rs-row-wheel' : ''}`} style={{ animationDelay: `${140 + i * 80}ms` }}>
+                <span className="rs-label">{row.label}</span><b className="rs-value">{row.value}</b>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="rs-coinblock" ref={flyRef}>
-          <div className="rs-collected-tag">SALVAGE COLLECTED</div>
-          <div className="rs-earned"><CoinIcon size={26} /> {fmtMoney(shownEarned)}</div>
+          <div className="rs-collected-tag dc-3d-text-sm rs-row-anim" style={{ animationDelay: `${140 + statRows.length * 80}ms` }}>YOU COLLECTED</div>
+          <div className="rs-earned" style={{ animationDelay: `${140 + statRows.length * 80 + 160}ms` }}>
+            <CoinIcon size={26} /> <span className="dc-3d-text">{fmtMoney(shownEarned)}</span>
+          </div>
         </div>
       </div>
 

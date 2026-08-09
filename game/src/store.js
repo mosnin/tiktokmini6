@@ -4,6 +4,7 @@ import {
   PART_KEYS, partCost, isAdLevel, handlingMult, totalLives, salvageMult, depthBuyPrice,
 } from './game/progression.js'
 import { LEVELS, LEVEL_COUNT } from './game/levels.js'
+import { CAMOS, DEFAULT_CAMO, CAMO_DROP_CHANCE } from './game/camos.js'
 import { sfx } from './audio.js'
 
 const KEY = 'depthcharge-save-v1'
@@ -11,6 +12,12 @@ const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {} } 
 const s = load()
 
 const freshParts = () => ({ thrusters: 1, armor: 1, salvage: 1 })
+const freshCamo = () => ({ unlocked: [DEFAULT_CAMO], equipped: DEFAULT_CAMO })
+
+// Ad-gated power-ups: touching a pickup only STORES it; activating (via ad)
+// is what starts the timed effect. Capped per run.
+export const MAX_POWERUP_ACTIVATIONS = 2
+export const POWERUP_GRACE = 1.2 // seconds of post-ad invincibility so resuming isn't an instant wall
 
 // Revive cost escalates per attempt within the same run: 1st, 2nd, 3rd revive
 // need 1 / 1 / 2 ads respectively.
@@ -21,7 +28,11 @@ export const MAX_REVIVES = REVIVE_AD_COSTS.length
 // this object and the HUD samples it at ~12Hz via syncHud.
 export const run = {
   traveled: 0, speed: 0, coinsThisRun: 0, obstaclesCleared: 0, grazes: 0,
-  powerup: null,        // { kind: 'slowmo'|'shrink', endsAt }
+  powerup: null,        // { kind: 'slowmo'|'shrink', endsAt } — the ACTIVE, timed effect
+  storedPowerup: null,  // { kind } — touched but not yet ad-activated; one at a time
+  pendingActivation: null, // kind waiting for Gameplay's frame loop to turn into `powerup` (needs sim time)
+  powerupActivations: 0,   // count of ad-activations this run, capped at MAX_POWERUP_ACTIVATIONS
+  graceUntil: 0,        // sim-time until which wall hits are ignored (post-ad-activation grace)
   reviveCount: 0,
   livesLeft: 1,
   finished: false,
@@ -35,19 +46,21 @@ export const useGame = create((set, get) => ({
   unlockedDepth: s.unlockedDepth ?? 1,     // highest depth playable
   selectedDepth: s.selectedDepth ?? 1,
   parts: s.parts ?? { 0: freshParts() },
+  camos: s.camos ?? { 0: freshCamo() },    // missileIdx -> { unlocked: [camoId...], equipped: camoId }
   bestTime: s.bestTime ?? {},              // depth -> best clear time (s)
   runs: s.runs ?? 0,
-  hud: { traveled: 0, speed: 0, progress: 0, lives: 1, powerup: null },
+  hud: { traveled: 0, speed: 0, progress: 0, lives: 1, powerup: null, storedPowerup: null },
   flightSeq: 0, // bumped on every beginFlight() so a replay of the SAME depth still rebuilds fresh obstacles/pickups
   lastResults: null,
   adModal: null,          // { kind, count, remaining, onDone }
   unlockCelebration: null,
+  camoUnlock: null,       // { missileIdx, camoId } — drives the 'NEW CAMO UNLOCKED!' popup
 
   save() {
     const g = get()
     localStorage.setItem(KEY, JSON.stringify({
       coins: g.coins, missileIdx: g.missileIdx, unlockedDepth: g.unlockedDepth,
-      selectedDepth: g.selectedDepth, parts: g.parts, bestTime: g.bestTime, runs: g.runs,
+      selectedDepth: g.selectedDepth, parts: g.parts, camos: g.camos, bestTime: g.bestTime, runs: g.runs,
     }))
   },
 
@@ -99,6 +112,35 @@ export const useGame = create((set, get) => ({
     apply()
   },
 
+  // ---------- camo finishes ----------
+  camosFor(idx) { return get().camos[idx] ?? freshCamo() },
+  equipCamo(missileIdx, camoId) {
+    const g = get()
+    const cur = g.camos[missileIdx] ?? freshCamo()
+    if (!cur.unlocked.includes(camoId) || cur.equipped === camoId) return
+    sfx.click()
+    set({ camos: { ...g.camos, [missileIdx]: { ...cur, equipped: camoId } } })
+    g.save()
+  },
+  // 22% chance, rolled once per COLLECT — unlocks a random still-locked camo
+  // for the missile that was just flown, auto-equips it, and pops the
+  // celebration. No-op once every camo for that missile is already owned.
+  rollCamoDrop() {
+    const g = get()
+    const idx = g.missileIdx
+    const cur = g.camos[idx] ?? freshCamo()
+    const locked = CAMOS.filter(c => !cur.unlocked.includes(c.id))
+    if (locked.length === 0 || Math.random() >= CAMO_DROP_CHANCE) return
+    const pick = locked[Math.floor(Math.random() * locked.length)]
+    set({
+      camos: { ...g.camos, [idx]: { unlocked: [...cur.unlocked, pick.id], equipped: pick.id } },
+      camoUnlock: { missileIdx: idx, camoId: pick.id },
+    })
+    g.save()
+    if (sfx.jackpot) sfx.jackpot(); else sfx.cascade(8)
+  },
+  dismissCamoUnlock() { set({ camoUnlock: null }) },
+
   // ---------- elevator / depth select ----------
   selectDepth(depth) {
     const g = get()
@@ -112,7 +154,8 @@ export const useGame = create((set, get) => ({
     const stats = g.statsFor(g.missileIdx)
     run.traveled = 0; run.speed = level.baseSpeed; run.coinsThisRun = 0; run.obstaclesCleared = 0
     run.grazes = 0; run.powerup = null; run.reviveCount = 0; run.livesLeft = stats.lives; run.finished = false
-    g.syncHud({ traveled: 0, speed: level.baseSpeed, progress: 0, lives: run.livesLeft, powerup: null })
+    run.storedPowerup = null; run.pendingActivation = null; run.powerupActivations = 0; run.graceUntil = 0
+    g.syncHud({ traveled: 0, speed: level.baseSpeed, progress: 0, lives: run.livesLeft, powerup: null, storedPowerup: null })
     set({ screen: 'flying', flightSeq: g.flightSeq + 1 })
   },
 
@@ -124,6 +167,19 @@ export const useGame = create((set, get) => ({
   },
   crash() {
     set({ screen: 'crashed' })
+  },
+  // Tapping the bottom-left stored-powerup chip. Reuses the same rewarded-ad
+  // seam as everything else; the actual `run.powerup` activation happens
+  // inside Gameplay's frame loop (only it knows the current sim time needed
+  // to compute endsAt) once `pendingActivation` is set here.
+  activateStoredPowerup() {
+    const g = get()
+    if (!run.storedPowerup || run.pendingActivation) return
+    if (run.powerupActivations >= MAX_POWERUP_ACTIVATIONS) return
+    const kind = run.storedPowerup.kind
+    run.storedPowerup = null
+    g.syncHud({ ...g.hud, storedPowerup: null })
+    g.showAd('rewarded', () => { run.pendingActivation = kind })
   },
   requestRevive() {
     if (run.reviveCount >= MAX_REVIVES) { get().finishRun(false); return }
@@ -176,6 +232,7 @@ export const useGame = create((set, get) => ({
     const total = Math.floor(r.earned * (r.wheelMult ?? 1))
     set({ coins: g.coins + total, lastResults: { ...r, collected: true, total } })
     get().save()
+    get().rollCamoDrop()
     return total
   },
 

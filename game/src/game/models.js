@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import missile0Url from '../assets/models/missile0.glb?url'
 import missile1Url from '../assets/models/missile1.glb?url'
 import missile2Url from '../assets/models/missile2.glb?url'
+import { camoById } from './camos.js'
 
 export const MODELS = { missiles: [null, null, null] }
 
@@ -119,10 +120,41 @@ export function preloadModels() {
   })
 }
 
-// Deep-clone a stored model for scene use (materials stay shared — fine, we
-// never mutate them per-instance).
-export function cloneModel(m) {
-  return m ? m.clone(true) : null
+// Camo tinting: blends each mesh's material color toward the camo's tone.
+// The stored MODELS.missiles[i] scene is the single shared source of truth
+// (loaded once, never mutated) — every clone() shares its material
+// *references*, so painting a camo directly onto a clone's materials would
+// leak onto every other clone (and the original). We therefore CLONE each
+// material before touching it; this function only ever runs on a freshly
+// cloned subtree, never on the stored original.
+function applyCamo(root, camoId) {
+  const camo = camoById(camoId)
+  if (!camo || !camo.tone) return root // 'classic' (or unknown) = leave native materials untouched
+  const tone = new THREE.Color(camo.tone)
+  const blend = camo.blend ?? 0.5
+  root.traverse(o => {
+    if (!o.isMesh || !o.material) return
+    const tint = mat => {
+      const m = mat.clone() // never mutate a shared material in place
+      if (m.color) m.color.lerp(tone, blend)
+      if (camo.metalness != null && 'metalness' in m) m.metalness = camo.metalness
+      if (camo.roughness != null && 'roughness' in m) m.roughness = camo.roughness
+      return m
+    }
+    o.material = Array.isArray(o.material) ? o.material.map(tint) : tint(o.material)
+  })
+  return root
+}
+
+// Deep-clone a stored model for scene use, optionally tinted with a camo
+// finish. Materials stay shared with the original across clones UNLESS a
+// non-classic camo is requested, in which case applyCamo() clones+tints them
+// (see above) — so plain clones remain cheap and the original is never at risk.
+export function cloneModel(m, camoId) {
+  if (!m) return null
+  const clone = m.clone(true)
+  if (camoId && camoId !== 'classic') applyCamo(clone, camoId)
+  return clone
 }
 
 preloadModels()
