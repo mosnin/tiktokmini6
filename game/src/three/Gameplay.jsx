@@ -260,14 +260,14 @@ export default function Gameplay() {
     }
 
     // camera
-    const camTarget = new THREE.Vector3(sim.mx * 0.35, sim.my * 0.35 + CAM_HEIGHT, CAM_DIST)
+    const camTarget = new THREE.Vector3(sim.mx, sim.my + CAM_HEIGHT * 0.35, CAM_DIST)
     camera.position.lerp(camTarget, g.screen === 'flying' ? 0.14 : 0.05)
     if (sim.shake > 0.01) {
       camera.position.x += (Math.random() - 0.5) * sim.shake
       camera.position.y += (Math.random() - 0.5) * sim.shake
       sim.shake *= 0.9
     }
-    camera.lookAt(sim.mx * 0.25, sim.my * 0.25 + LOOKAT_Y, -60)
+    camera.lookAt(sim.mx, sim.my, -60)
 
     fx.update(realDt)
   })
@@ -290,9 +290,10 @@ export default function Gameplay() {
     }
   }
 
-  // restore missile visibility on a fresh flight
+  // restore missile visibility on a fresh flight AND on ad-revive (which
+  // returns straight to 'flying' without passing 'descending')
   useEffect(() => {
-    if (screen === 'descending' && missileWrapRef.current) missileWrapRef.current.visible = true
+    if ((screen === 'descending' || screen === 'flying') && missileWrapRef.current) missileWrapRef.current.visible = true
   }, [screen])
 
   return (
