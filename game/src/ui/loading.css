@@ -1,0 +1,13 @@
+.ld-root { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; background: radial-gradient(ellipse at 50% 40%, #1a2028 0%, #05070a 70%); color: #fff; }
+.ld-glow { position: absolute; width: 340px; height: 340px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,176,32,.18), transparent 70%); filter: blur(4px); }
+.ld-logo { display: flex; align-items: center; gap: 8px; color: var(--dc-amber); z-index: 1; max-width: 86vw; }
+.ld-title { font-size: 20px; font-weight: 900; letter-spacing: 1px; color: #fff; white-space: nowrap; }
+.ld-title span { color: var(--dc-amber); }
+.ld-sub { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: var(--dc-ink-dim); margin-top: 6px; z-index: 1; }
+.ld-bar { width: 60vw; max-width: 220px; height: 8px; background: rgba(255,255,255,.1); border-radius: 5px;
+  overflow: hidden; margin-top: 26px; z-index: 1; border: 1px solid rgba(255,176,32,.3); }
+.ld-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ff8a1f, var(--dc-amber)); transition: width 0.1s linear; }
+.ld-pct { margin-top: 8px; font-size: 12px; font-weight: 800; color: var(--dc-ink-dim); z-index: 1; }
+.ld-play { margin-top: 22px; padding: 14px 46px; border-radius: 12px; font-size: 16px; letter-spacing: 2px; z-index: 1; }

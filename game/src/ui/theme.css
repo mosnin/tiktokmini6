@@ -1,0 +1,45 @@
+/* Shared military-industrial design tokens for Depth Charge UI. */
+:root {
+  --dc-amber: #ffb020;
+  --dc-amber-dim: #a86e10;
+  --dc-red: #ff3b3b;
+  --dc-cyan: #3fd0ff;
+  --dc-green: #4ade60;
+  --dc-purple: #a03fff;
+  --dc-ink: #eef2f5;
+  --dc-ink-dim: #a8b2ba;
+  --dc-steel-1: #1b2027;
+  --dc-steel-2: #10131a;
+  --dc-steel-3: #262c35;
+  --dc-glass: rgba(18, 22, 28, 0.86);
+  --dc-glass-lite: rgba(30, 36, 44, 0.72);
+}
+
+.dc-font { font-family: "Bank Gothic", "Eurostile", "Arial Narrow", Arial, sans-serif; }
+
+.dc-panel {
+  background: linear-gradient(180deg, var(--dc-steel-1), var(--dc-steel-2));
+  border: 1px solid rgba(255, 176, 32, 0.25);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dc-btn {
+  font-family: inherit; border: none; cursor: pointer; letter-spacing: 0.5px;
+  font-weight: 800; color: var(--dc-ink); position: relative;
+}
+.dc-btn-amber { background: linear-gradient(180deg, #ffc85a, var(--dc-amber)); color: #3a2400; box-shadow: 0 3px 0 #8a5a10, 0 6px 14px rgba(0,0,0,.4); }
+.dc-btn-amber:active { transform: translateY(2px); box-shadow: 0 1px 0 #8a5a10; }
+.dc-btn-red { background: linear-gradient(180deg, #ff6a5a, var(--dc-red)); box-shadow: 0 3px 0 #8a1a1a, 0 6px 14px rgba(0,0,0,.4); }
+.dc-btn-red:active { transform: translateY(2px); box-shadow: 0 1px 0 #8a1a1a; }
+.dc-btn-ghost { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); }
+.dc-btn-purple { background: linear-gradient(180deg, #c48af2, var(--dc-purple)); box-shadow: 0 3px 0 #5b2a8a, 0 6px 14px rgba(0,0,0,.4); }
+.dc-btn:disabled { opacity: 0.5; cursor: default; }
+
+.dc-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 8px; padding: 3px 8px; font-size: 12px; font-weight: 800; }
+
+.dc-scanlines { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: 0.05;
+  background-image: repeating-linear-gradient(0deg, #fff 0px, transparent 1px, transparent 2px); }
+
+@keyframes dc-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes dc-blink-warn { 0%, 100% { box-shadow: 0 0 0 rgba(255,59,59,0); } 50% { box-shadow: 0 0 22px rgba(255,59,59,.7); } }
