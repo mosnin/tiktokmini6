@@ -174,7 +174,7 @@ export default function Gameplay() {
       updateBlinkingLights(corridorRef.current, state.clock.elapsedTime)
 
       // obstacles: scroll, animate, collide
-      const radius = MISSILE_RADIUS * missileDef.hitboxScale * visScale
+      const radius = MISSILE_RADIUS * missileDef.hitboxScale * visScale * 0.7
       let nearestLaserProx = 0
       for (const obs of obstacles) {
         const z = run.traveled - obs.distance
