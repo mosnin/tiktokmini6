@@ -24,8 +24,8 @@ export default function HangarScene() {
 
   useFrame((state, dt) => {
     if (rootRef.current) rootRef.current.rotation.y += dt * 0.4
-    camera.position.lerp(new THREE.Vector3(1.4, 0.35, 4.0), 0.09)
-    camera.lookAt(0, -0.1, 0)
+    camera.position.lerp(new THREE.Vector3(0.9, 0.55, 6.6), 0.09)
+    camera.lookAt(-0.45, -0.1, 0)
     const targetFov = 48
     if (Math.abs(camera.fov - targetFov) > 0.02) { camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.1); camera.updateProjectionMatrix() }
   })

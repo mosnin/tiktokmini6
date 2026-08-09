@@ -36,6 +36,7 @@ export default function Gameplay() {
   const { scene, camera } = useThree()
   const missileWrapRef = useRef()   // scale (shrink powerup)
   const missileTiltRef = useRef()   // bank/pitch visual
+  const flameRef = useRef()         // thruster flame cones (flickered per frame)
   const headlightRef = useRef()     // missile-mounted forward light
   const corridorRef = useRef()
   const obstacleRootRef = useRef()
@@ -155,13 +156,18 @@ export default function Gameplay() {
       if (headlightRef.current) headlightRef.current.position.set(sim.mx, sim.my, 2)
       missileTilt.rotation.z = THREE.MathUtils.lerp(missileTilt.rotation.z, -sim.vx * 0.05, 0.15)
       missileTilt.rotation.x = THREE.MathUtils.lerp(missileTilt.rotation.x, sim.vy * 0.045, 0.15)
+      if (flameRef.current) {
+        const fl = 0.85 + Math.random() * 0.3
+        const spd = 0.7 + Math.min(1, run.speed / level.maxSpeed) * 0.6
+        flameRef.current.scale.set(fl, fl * spd, fl)
+        flameRef.current.visible = true
+      }
 
       // engine flame + smoke trail
       const speedNorm = Math.min(1, run.speed / level.maxSpeed)
       const nosePos = new THREE.Vector3(sim.mx, sim.my, 0.9)
       fx.spawnEngineTick(nosePos, missileDef.flame, speedNorm)
       sfx.engine(speedNorm)
-      sfx.wind(speedNorm * 0.6)
 
       // corridor scroll
       if (corridorRef.current) corridorRef.current.position.z = run.traveled
@@ -302,6 +308,16 @@ export default function Gameplay() {
       <group ref={missileWrapRef} position={[0, 0, 0]}>
         <group ref={missileTiltRef}>
           <primitive object={missileModel} />
+          <group ref={flameRef} position={[0, 0, 1.05]} rotation={[Math.PI / 2, 0, 0]}>
+            <mesh position={[0, -0.35, 0]}>
+              <coneGeometry args={[0.22, 0.9, 12, 1, true]} />
+              <meshBasicMaterial color="#ff7a1e" transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+            </mesh>
+            <mesh position={[0, -0.22, 0]}>
+              <coneGeometry args={[0.11, 0.5, 10, 1, true]} />
+              <meshBasicMaterial color="#fff3c8" transparent opacity={0.95} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+            </mesh>
+          </group>
         </group>
       </group>
     </group>

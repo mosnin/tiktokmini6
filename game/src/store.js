@@ -63,7 +63,7 @@ export const useGame = create((set, get) => ({
   },
 
   // ---------- screens ----------
-  bootDone() { set({ screen: 'elevator' }) },
+  bootDone() { set({ screen: 'hangar' }) },
   toElevator() { sfx.click(); set({ screen: 'elevator', lastResults: null }) },
   toHangar() { sfx.click(); set({ screen: 'hangar', viewMissileIdx: get().missileIdx }) },
   setPhase: screen => set({ screen }),
@@ -200,7 +200,7 @@ export const useGame = create((set, get) => ({
   continueFromResults() {
     const g = get()
     sfx.click()
-    const next = () => set({ screen: 'elevator', lastResults: null })
+    const next = () => set({ screen: 'hangar', lastResults: null })
     if (g.runs > 0 && g.runs % 2 === 0) g.showAd('interstitial', next)
     else next()
   },

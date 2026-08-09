@@ -1,4 +1,5 @@
 import { useGame } from '../store.js'
+import { LEVELS } from '../game/levels.js'
 import { fmt } from '../consts.js'
 import { PART_KEYS, PART_INFO, PART_MAX, partCost, isAdLevel, salvageMult, totalLives } from '../game/progression.js'
 import { MISSILES, isMissileUnlocked } from '../game/missiles.js'
@@ -54,6 +55,9 @@ export default function HangarScreen() {
   const selectMissile = useGame(s => s.selectMissile)
   const buyPart = useGame(s => s.buyPart)
   const toElevator = useGame(s => s.toElevator)
+  const selectedDepth = useGame(s => s.selectedDepth)
+  const selectDepth = useGame(s => s.selectDepth)
+  const levelDef = LEVELS[Math.min(selectedDepth, LEVELS.length) - 1]
 
   const def = MISSILES[viewMissileIdx]
   const locked = !isMissileUnlocked(viewMissileIdx, unlockedDepth)
@@ -62,11 +66,15 @@ export default function HangarScreen() {
 
   return (
     <div className="hg-root">
-      <button className="hg-back" onClick={toElevator}>‹ ELEVATOR</button>
       <div className="hg-banner">
         <div className="hg-banner-name">{def.name}</div>
         <div className="hg-banner-sub">{def.subtitle}</div>
       </div>
+      <button className="hg-depth-chip" onClick={toElevator}>
+        <span className="hg-depth-b">B{selectedDepth}</span>
+        <span className="hg-depth-name">{levelDef.theme?.name ?? ''}</span>
+        <span className="hg-depth-change">CHANGE ▾</span>
+      </button>
 
       <div className="hg-dots">
         {MISSILES.map((m, i) => (
@@ -93,7 +101,7 @@ export default function HangarScreen() {
       </div>
 
       {showSelect && <button className="hg-select-pill" onClick={() => selectMissile(viewMissileIdx)}>EQUIP THIS MISSILE</button>}
-      {!locked && !showSelect && <div className="hg-equipped">EQUIPPED</div>}
+      {!locked && !showSelect && <button className="hg-launch" onClick={() => selectDepth(selectedDepth)}>TAP TO LAUNCH</button>}
     </div>
   )
 }

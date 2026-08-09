@@ -4,7 +4,7 @@
 .hg-back { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 12px; background: rgba(10,12,16,.7);
   border: 1px solid rgba(255,176,32,.3); border-radius: 8px; padding: 7px 12px; color: #fff; font-weight: 800; font-size: 12px; }
 
-.hg-banner { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+.hg-banner { position: absolute; top: max(52px, calc(env(safe-area-inset-top) + 40px)); left: 50%; transform: translateX(-50%);
   text-align: center; }
 .hg-banner-name { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
 .hg-banner-sub { font-size: 11px; font-weight: 700; color: var(--dc-amber); letter-spacing: 1.5px; margin-top: 2px; }
@@ -45,3 +45,19 @@
   background: linear-gradient(180deg, #ffc85a, var(--dc-amber)); box-shadow: 0 4px 0 #8a5a10; }
 .hg-equipped { position: absolute; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 96px); left: 50%;
   transform: translateX(-50%); color: var(--dc-green); font-weight: 900; font-size: 13px; letter-spacing: 1.5px; }
+
+/* ---------- depth chip (level indicator + level-select entry) ---------- */
+.hg-depth-chip { position: absolute; top: max(122px, calc(env(safe-area-inset-top) + 110px)); left: 50%;
+  transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(12,16,24,.82);
+  border: 1.5px solid rgba(255,176,32,.5); border-radius: 999px; padding: 7px 14px; color: #fff;
+  font-weight: 800; font-size: 12px; letter-spacing: 1px; z-index: 6; cursor: pointer; }
+.hg-depth-b { color: var(--dc-amber); font-size: 15px; font-weight: 900; }
+.hg-depth-name { color: #dfe6f0; }
+.hg-depth-change { color: var(--dc-amber); font-size: 10px; opacity: .85; }
+/* big launch button — the hangar is the home screen now */
+.hg-launch { position: absolute; left: 50%; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 205px);
+  transform: translateX(-50%); padding: 15px 44px; border-radius: 16px; border: none; cursor: pointer;
+  background: linear-gradient(#ffcf5c, #ff9a1f); color: #3a2404; font-weight: 900; font-size: 19px;
+  letter-spacing: 2px; box-shadow: 0 5px 0 #a86a00, 0 10px 24px rgba(0,0,0,.45); z-index: 6;
+  animation: hg-launch-pulse 1.4s ease-in-out infinite; }
+@keyframes hg-launch-pulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } }

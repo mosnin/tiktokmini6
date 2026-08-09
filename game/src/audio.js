@@ -1,3 +1,5 @@
+import ROCKET_URL from './assets/sfx/rocket-loop.mp3?url'
+
 // Premium WebAudio synth engine — zero asset files, everything generated at runtime.
 // Signal flow:
 //   voice -> master (dry bus) -> [optional lowpass send for slow-mo] -> compressor -> destination
@@ -599,6 +601,34 @@ function ensureWind(c) {
 // broadband noise: pink-noise jet through a swept lowpass for the body, a
 // band-passed hiss for the exhaust crackle, and a noise-driven sub rumble
 // for the chest. Everything tracks speed.
+let rocketBuf = null
+let rocketLoading = false
+function loadRocketBuffer(c) {
+  if (rocketLoading) return
+  rocketLoading = true
+  try {
+    const b64 = ROCKET_URL.slice(ROCKET_URL.indexOf(',') + 1)
+    const bin = atob(b64)
+    const bytes = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+    c.decodeAudioData(bytes.buffer).then(buf => { rocketBuf = buf; (window.__audioDbg ??= {}).rocket = true }).catch(() => {})
+  } catch {}
+}
+let rocketSrc = null
+let rocketGain = null
+function ensureRocket(c) {
+  if (rocketSrc || !rocketBuf) return rocketSrc
+  rocketSrc = c.createBufferSource()
+  rocketSrc.buffer = rocketBuf
+  rocketSrc.loop = true
+  rocketGain = c.createGain()
+  rocketGain.gain.value = 0.0001
+  rocketSrc.connect(rocketGain)
+  out(rocketGain, 0.06)
+  rocketSrc.start()
+  return rocketSrc
+}
+
 let engineState = null
 function ensureEngine(c) {
   if (engineState) return engineState
@@ -606,21 +636,20 @@ function ensureEngine(c) {
   const jet = c.createBufferSource(); jet.buffer = noiseBuffer(c, 3, true); jet.loop = true
   const jetLp = c.createBiquadFilter(); jetLp.type = 'lowpass'; jetLp.frequency.value = 420; jetLp.Q.value = 0.4
   const jetG = c.createGain(); jetG.gain.value = 0.85
-  // exhaust hiss: white noise band, opens with speed
-  const hiss = c.createBufferSource(); hiss.buffer = noiseBuffer(c, 2.3, false); hiss.loop = true
-  const hissBp = c.createBiquadFilter(); hissBp.type = 'bandpass'; hissBp.frequency.value = 1800; hissBp.Q.value = 0.5
-  const hissG = c.createGain(); hissG.gain.value = 0.1
+  // slow mechanical throb so the roar reads as an engine, not constant static
+  const throb = c.createOscillator(); throb.type = 'sine'; throb.frequency.value = 0.9
+  const throbDepth = c.createGain(); throbDepth.gain.value = 0.12
   // sub rumble: pink noise through a very low lowpass — felt more than heard
   const rum = c.createBufferSource(); rum.buffer = noiseBuffer(c, 2.7, true); rum.loop = true
   const rumLp = c.createBiquadFilter(); rumLp.type = 'lowpass'; rumLp.frequency.value = 110; rumLp.Q.value = 0.7
   const rumG = c.createGain(); rumG.gain.value = 0.9
   const g = c.createGain(); g.gain.value = 0.0001
   jet.connect(jetLp).connect(jetG).connect(g)
-  hiss.connect(hissBp).connect(hissG).connect(g)
   rum.connect(rumLp).connect(rumG).connect(g)
+  throb.connect(throbDepth); throbDepth.connect(jetG.gain)
   out(g, 0.06)
-  jet.start(); hiss.start(); rum.start()
-  engineState = { jetLp, hissBp, hissG, rumG, g }
+  jet.start(); rum.start(); throb.start()
+  engineState = { jetLp, rumG, g }
   return engineState
 }
 
@@ -641,7 +670,7 @@ function ensureLaser(c) {
 // ---------- public API ----------
 
 export const sfx = {
-  unlock() { try { const c = ac(); c.resume() } catch {} },
+  unlock() { try { const c = ac(); c.resume(); loadRocketBuffer(c) } catch {} },
   click() { try { fnClick() } catch {} },
   swoosh() { try { fnSwoosh() } catch {} },
   launch() { try { fnLaunch() } catch {} },
@@ -675,15 +704,22 @@ export const sfx = {
   engine(v = 0) {
     try {
       const c = ac()
-      const s = ensureEngine(c)
       const vv = Math.max(0, Math.min(1, v))
       const t = c.currentTime
-      // the roar opens up with speed: more body, more hiss, more rumble
-      s.jetLp.frequency.setTargetAtTime(320 + vv * 1500, t, 0.12)
-      s.hissBp.frequency.setTargetAtTime(1400 + vv * 2200, t, 0.12)
-      s.hissG.gain.setTargetAtTime(0.05 + vv * 0.22, t, 0.12)
-      s.rumG.gain.setTargetAtTime(0.5 + vv * 0.7, t, 0.12)
-      s.g.gain.setTargetAtTime(vv <= 0.001 ? 0.0001 : 0.1 + vv * 0.2, t, 0.12)
+      loadRocketBuffer(c)
+      if (rocketBuf) {
+        // real recorded rocket loop: pitch + volume ride the speed
+        const src = ensureRocket(c)
+        src.playbackRate.setTargetAtTime(0.85 + vv * 0.5, t, 0.15)
+        rocketGain.gain.setTargetAtTime(vv <= 0.001 ? 0.0001 : 0.14 + vv * 0.22, t, 0.12)
+        if (engineState) engineState.g.gain.setTargetAtTime(0.0001, t, 0.08)
+        return
+      }
+      const s = ensureEngine(c)
+      // deep muffled roar that opens slightly with speed — never hissy static
+      s.jetLp.frequency.setTargetAtTime(240 + vv * 520, t, 0.12)
+      s.rumG.gain.setTargetAtTime(0.55 + vv * 0.6, t, 0.12)
+      s.g.gain.setTargetAtTime(vv <= 0.001 ? 0.0001 : 0.08 + vv * 0.15, t, 0.12)
     } catch {}
   },
   // Laser hum — proximity 0..1 (0 = far/off, 1 = right next to an active laser grid)
