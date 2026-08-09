@@ -167,7 +167,7 @@ export default function Gameplay() {
       const speedNorm = Math.min(1, run.speed / level.maxSpeed)
       const nosePos = new THREE.Vector3(sim.mx, sim.my, 0.9)
       fx.spawnEngineTick(nosePos, missileDef.flame, speedNorm)
-      sfx.engine(speedNorm)
+      if (!sim.vaultDone) sfx.engine(speedNorm)
 
       // corridor scroll
       if (corridorRef.current) corridorRef.current.position.z = run.traveled
@@ -230,6 +230,7 @@ export default function Gameplay() {
         sim.vaultDone = true
         fx.spawnVaultExplosion(new THREE.Vector3(sim.mx, sim.my, 0))
         sfx.explosion()
+        sfx.engine(0); sfx.laserHum(0)
         sim.finishT = 0
       }
       if (sim.vaultDone) {
@@ -282,6 +283,7 @@ export default function Gameplay() {
       sim.crashT = 0; sim.crashDone = false
       fx.spawnVaultExplosion(new THREE.Vector3(sim.mx, sim.my, 0))
       sfx.explosion()
+      sfx.engine(0); sfx.laserHum(0)
       sim.shake = 0.9
       if (missileWrapRef.current) missileWrapRef.current.visible = false
       useGame.getState().crash()
