@@ -13,4 +13,4 @@ export const fmtMoney = n => '$' + fmt(n)
 
 // Bumped every published build — always visible in the corner of the game so
 // there is never ambiguity about which version is actually running.
-export const BUILD = 'dc-v1'
+export const BUILD = 'dc-v2'

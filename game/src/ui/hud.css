@@ -13,7 +13,7 @@
 .dc-depth-badge small { display: block; font-size: 9px; font-weight: 700; color: var(--dc-ink-dim); letter-spacing: 1px; }
 
 .dc-progress-wrap { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 46px); left: 50%;
-  transform: translateX(-50%); width: 62vw; max-width: 220px; text-align: center; }
+  transform: translateX(-50%); width: 62%; max-width: 220px; text-align: center; }
 .dc-progress-bar { width: 100%; height: 10px; background: rgba(255,255,255,.1); border-radius: 6px;
   border: 1px solid rgba(255,176,32,.3); overflow: hidden; }
 .dc-progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ff8a1f, var(--dc-amber)); }
@@ -39,12 +39,12 @@
 .dc-descend-text { margin-top: 22px; font-size: 20px; font-weight: 900; letter-spacing: 1.5px; color: var(--dc-amber); }
 .dc-descend-sub { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--dc-ink-dim); letter-spacing: 1px; }
 
-.dc-crash-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: dc-flash .5s ease-out; }
-@keyframes dc-flash { 0% { opacity: .9; } 100% { opacity: 0; } }
+.dc-crash-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: dc-flash .18s ease-out; }
+@keyframes dc-flash { 0% { opacity: .5; } 100% { opacity: 0; } }
 
 .dc-modal-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: rgba(4,6,9,.55); pointer-events: auto; flex-direction: column; }
-.dc-modal { width: min(78vw, 320px); border-radius: 16px; padding: 22px 18px; text-align: center; }
+.dc-modal { width: min(82%, 320px); border-radius: 16px; padding: 22px 18px; text-align: center; }
 .dc-modal-icon { color: var(--dc-red); margin-bottom: 6px; display: flex; justify-content: center; }
 .dc-modal h2 { margin: 0 0 6px; font-size: 20px; letter-spacing: 1px; color: var(--dc-red); }
 .dc-modal p { margin: 0 0 14px; color: var(--dc-ink-dim); font-size: 13px; }

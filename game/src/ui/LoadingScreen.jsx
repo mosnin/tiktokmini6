@@ -26,9 +26,12 @@ export default function LoadingScreen() {
         <div className="ld-title">DEPTH<span>CHARGE</span></div>
       </div>
       <div className="ld-sub">UNDERGROUND MISSILE RUN</div>
-      <div className="ld-bar"><i style={{ width: `${pct}%` }} /></div>
-      <div className="ld-pct">{Math.round(pct)}%</div>
-      {pct >= 100 && (
+      {pct < 100 ? (
+        <>
+          <div className="ld-bar"><i style={{ width: `${pct}%` }} /></div>
+          <div className="ld-pct">ARMING SYSTEMS… {Math.round(pct)}%</div>
+        </>
+      ) : (
         <button className="dc-btn dc-btn-amber ld-play" onClick={bootDone}>LAUNCH</button>
       )}
     </div>

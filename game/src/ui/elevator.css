@@ -27,7 +27,7 @@
   box-shadow: 0 4px 0 #8a5a10, 0 8px 18px rgba(0,0,0,.4); }
 .dc-elev-hangar:active { transform: translateY(3px); box-shadow: 0 1px 0 #8a5a10; }
 
-.dc-unlock-sheet { width: min(80vw, 320px); border-radius: 16px; padding: 20px; text-align: center; }
+.dc-unlock-sheet { width: min(84%, 320px); border-radius: 16px; padding: 20px; text-align: center; }
 .dc-unlock-title { font-size: 18px; font-weight: 900; color: var(--dc-amber); letter-spacing: 1px; margin-bottom: 6px; }
 .dc-unlock-sheet p { color: var(--dc-ink-dim); font-size: 13px; margin: 0 0 14px; }
 .dc-unlock-cancel { margin-top: 10px; background: none; border: none; color: var(--dc-ink-dim); font-weight: 700;

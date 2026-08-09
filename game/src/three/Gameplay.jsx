@@ -173,6 +173,9 @@ export default function Gameplay() {
       for (const obs of obstacles) {
         const z = run.traveled - obs.distance
         if (obs.mesh) {
+          // once past the missile plane, hide it — otherwise walls sweep on
+          // through the camera as huge screen-filling bands (reads as a glitch)
+          obs.mesh.visible = z < 1.2
           obs.mesh.position.z = z
           if (obs.type === 'fan') updateFan(obs.mesh, obs, t)
           else if (obs.type === 'piston') updatePiston(obs.mesh, obs, t)
@@ -192,7 +195,7 @@ export default function Gameplay() {
       for (const p of pickups) {
         if (p.taken) continue
         const z = run.traveled - p.distance
-        if (p.mesh) { p.mesh.position.z = z; p.mesh.rotation.y = t * 2.4 }
+        if (p.mesh) { p.mesh.visible = z < 0.8; p.mesh.position.z = z; p.mesh.rotation.y = t * 2.4 }
         if (Math.abs(z) < 3) {
           const dx = p.x - sim.mx, dy = p.y - sim.my
           if (dx * dx + dy * dy + z * z < 1.6) {

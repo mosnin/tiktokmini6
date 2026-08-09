@@ -595,28 +595,32 @@ function ensureWind(c) {
   return windState
 }
 
-// Missile engine whoosh loop — pitch-tracks forward speed.
+// Missile ROCKET ROAR — no oscillators (tonal = annoying hum). A rocket is
+// broadband noise: pink-noise jet through a swept lowpass for the body, a
+// band-passed hiss for the exhaust crackle, and a noise-driven sub rumble
+// for the chest. Everything tracks speed.
 let engineState = null
 function ensureEngine(c) {
   if (engineState) return engineState
-  const o1 = c.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = 70
-  const o2 = c.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = 71.5
-  const sub = c.createOscillator(); sub.type = 'sine'; sub.frequency.value = 35
-  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; lp.Q.value = 0.6
-  const chop = c.createGain(); chop.gain.value = 0.8
-  const lfo = c.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 7
-  const lfoDepth = c.createGain(); lfoDepth.gain.value = 0.15
-  lfo.connect(lfoDepth); lfoDepth.connect(chop.gain)
-  const nz = c.createBufferSource(); nz.buffer = noiseBuffer(c, 2, true); nz.loop = true
-  const nbp = c.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = 900; nbp.Q.value = 0.7
-  const ng = c.createGain(); ng.gain.value = 0.22
+  // main jet body: pink noise, heavy lowpass swept by speed
+  const jet = c.createBufferSource(); jet.buffer = noiseBuffer(c, 3, true); jet.loop = true
+  const jetLp = c.createBiquadFilter(); jetLp.type = 'lowpass'; jetLp.frequency.value = 420; jetLp.Q.value = 0.4
+  const jetG = c.createGain(); jetG.gain.value = 0.85
+  // exhaust hiss: white noise band, opens with speed
+  const hiss = c.createBufferSource(); hiss.buffer = noiseBuffer(c, 2.3, false); hiss.loop = true
+  const hissBp = c.createBiquadFilter(); hissBp.type = 'bandpass'; hissBp.frequency.value = 1800; hissBp.Q.value = 0.5
+  const hissG = c.createGain(); hissG.gain.value = 0.1
+  // sub rumble: pink noise through a very low lowpass — felt more than heard
+  const rum = c.createBufferSource(); rum.buffer = noiseBuffer(c, 2.7, true); rum.loop = true
+  const rumLp = c.createBiquadFilter(); rumLp.type = 'lowpass'; rumLp.frequency.value = 110; rumLp.Q.value = 0.7
+  const rumG = c.createGain(); rumG.gain.value = 0.9
   const g = c.createGain(); g.gain.value = 0.0001
-  o1.connect(lp); o2.connect(lp); sub.connect(lp)
-  lp.connect(chop); chop.connect(g)
-  nz.connect(nbp); nbp.connect(ng); ng.connect(chop)
-  out(g, 0.08)
-  o1.start(); o2.start(); sub.start(); lfo.start(); nz.start()
-  engineState = { o1, o2, sub, lp, lfo, g }
+  jet.connect(jetLp).connect(jetG).connect(g)
+  hiss.connect(hissBp).connect(hissG).connect(g)
+  rum.connect(rumLp).connect(rumG).connect(g)
+  out(g, 0.06)
+  jet.start(); hiss.start(); rum.start()
+  engineState = { jetLp, hissBp, hissG, rumG, g }
   return engineState
 }
 
@@ -674,13 +678,12 @@ export const sfx = {
       const s = ensureEngine(c)
       const vv = Math.max(0, Math.min(1, v))
       const t = c.currentTime
-      const freq = 62 + vv * 90
-      s.o1.frequency.setTargetAtTime(freq, t, 0.1)
-      s.o2.frequency.setTargetAtTime(freq * 1.022, t, 0.1)
-      s.sub.frequency.setTargetAtTime(freq * 0.5, t, 0.1)
-      s.lfo.frequency.setTargetAtTime(5 + vv * 14, t, 0.15)
-      s.lp.frequency.setTargetAtTime(350 + vv * 900, t, 0.1)
-      s.g.gain.setTargetAtTime(vv <= 0.001 ? 0.0001 : 0.06 + vv * 0.13, t, 0.12)
+      // the roar opens up with speed: more body, more hiss, more rumble
+      s.jetLp.frequency.setTargetAtTime(320 + vv * 1500, t, 0.12)
+      s.hissBp.frequency.setTargetAtTime(1400 + vv * 2200, t, 0.12)
+      s.hissG.gain.setTargetAtTime(0.05 + vv * 0.22, t, 0.12)
+      s.rumG.gain.setTargetAtTime(0.5 + vv * 0.7, t, 0.12)
+      s.g.gain.setTargetAtTime(vv <= 0.001 ? 0.0001 : 0.1 + vv * 0.2, t, 0.12)
     } catch {}
   },
   // Laser hum — proximity 0..1 (0 = far/off, 1 = right next to an active laser grid)

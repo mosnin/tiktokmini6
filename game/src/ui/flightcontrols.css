@@ -15,8 +15,8 @@
 .fc-ring {
   position: absolute; left: 50%; top: 50%; width: 112px; height: 112px;
   margin-left: -56px; margin-top: -56px; border-radius: 50%;
-  border: 2.5px solid rgba(255, 176, 32, 0.55);
-  background: radial-gradient(circle at 50% 45%, rgba(255,176,32,.12), rgba(255,255,255,.05) 60%, rgba(0,0,0,.15) 100%);
+  border: 2px solid rgba(255, 176, 32, 0.35);
+  background: rgba(255,176,32,.05);
   box-shadow: 0 0 18px rgba(0,0,0,.4), 0 0 0 1px rgba(0,0,0,.2) inset;
   transform: scale(0.8); animation: fc-ring-in 90ms ease-out forwards;
 }
@@ -25,8 +25,9 @@
 .fc-knob {
   position: absolute; left: 50%; top: 50%; width: 46px; height: 46px;
   margin-left: -23px; margin-top: -23px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff0d0, #ffb020 60%, #a86e10 100%);
-  box-shadow: 0 3px 8px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.3) inset;
+  background: radial-gradient(circle at 35% 30%, rgba(255,240,208,.5), rgba(255,176,32,.38) 60%, rgba(168,110,16,.3) 100%);
+  border: 1.5px solid rgba(255,200,80,.6);
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
   transform: translate(-50%, -50%) translate(0px, 0px); transition: none;
 }
 
