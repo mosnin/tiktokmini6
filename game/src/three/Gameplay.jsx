@@ -61,7 +61,36 @@ export default function Gameplay() {
   const missileModel = useMemo(() => cloneModel(MODELS.missiles[missileIdx], equippedCamo) || fallbackMissile(), [missileIdx, mTick, equippedCamo])
 
   const obstacles = useMemo(() => generateLevel(level), [level.depth, flightSeq])
-  const pickups = useMemo(() => generatePickups(level), [level.depth, flightSeq])
+  // Power-up pickups are seeded at random points in the corridor cross-section,
+  // which regularly put them behind a wall or far off the only survivable line
+  // — unreachable in practice. Snap each one onto the gap of the nearest
+  // obstacle so it always sits on the path the player must fly anyway.
+  const pickups = useMemo(() => {
+    const list = generatePickups(level)
+    for (const p of list) {
+      if (p.kind === 'coin') continue
+      // Only walls: their safeTargetFor is a real hole centre. Lasers/crates/
+      // pistons only have an approximate "safe-ish" point, and parking a
+      // capsule there can bury it inside solid geometry.
+      let near = null, best = 1e9
+      for (const o of obstacles) {
+        if (o.type !== 'wall') continue
+        const gap = Math.abs(o.distance - p.distance)
+        if (gap < best) { best = gap; near = o }
+      }
+      if (near && best < 90) {
+        const t = safeTargetFor(near)
+        p.x = t.x; p.y = t.y
+        // Sit exactly IN the hole. This makes the capsule structurally
+        // collectable: surviving the wall means being inside the hole, and the
+        // grab radius below is wider than the largest hole — so if you make it
+        // through, you get the power-up. Parking it 2-8m short failed because
+        // the missile is still sliding onto the safe line that far out.
+        p.distance = near.distance
+      }
+    }
+    return list
+  }, [obstacles, level.depth, flightSeq])
 
   const fx = useMemo(() => new Effects(scene), [scene])
   useEffect(() => () => fx.dispose(), [fx])
@@ -222,7 +251,12 @@ export default function Gameplay() {
         if (p.mesh) { p.mesh.visible = z < 0.8; p.mesh.position.z = z; p.mesh.rotation.y = t * 2.4 }
         if (Math.abs(z) < 3) {
           const dx = p.x - sim.mx, dy = p.y - sim.my
-          if (dx * dx + dy * dy + z * z < 1.6) {
+          // Power-ups get a much wider grab than coins: they gate a rewarded
+          // ad, so a near-miss costs a real impression. 2.83 units comfortably
+          // exceeds the largest wall hole (~2.4), which is what makes
+          // "survived the wall => collected the capsule" hold.
+          const grabR2 = p.kind === 'coin' ? 1.6 : 8
+          if (dx * dx + dy * dy + z * z < grabR2) {
             if (p.kind === 'coin') {
               p.taken = true; p.mesh.visible = false
               run.coinsThisRun += COIN_VALUE; sfx.coin(); fx.spawnCoinPop(new THREE.Vector3(p.x, p.y, 0))
