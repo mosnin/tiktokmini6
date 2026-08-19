@@ -73,3 +73,12 @@
   letter-spacing: 2px; box-shadow: 0 5px 0 #a86a00, 0 10px 24px rgba(0,0,0,.45); z-index: 6;
   animation: hg-launch-pulse 1.4s ease-in-out infinite; }
 @keyframes hg-launch-pulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } }
+
+/* Very short viewports: the launch button's fixed 205px lift rides up over the
+   camo swatch row (measured at 470px tall — every swatch was untappable).
+   Drop the lift and shrink the button so both stay reachable.
+   NB: keep this at the END of the file or the base rule overrides it. */
+@media (max-height: 560px) {
+  .hg-launch { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 158px);
+    padding: 11px 32px; font-size: 16px; }
+}
